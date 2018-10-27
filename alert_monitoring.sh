@@ -1,8 +1,20 @@
 #!/bin/bash
 
-export ORACLE_SID=orcl
-export ORACLE_BASE=/u01/app/oracle
-export LOG_DIR=$ORACLE_BASE/diag/rdbms/$ORACLE_SID/$ORACLE_SID/trace
+EXL_DB="ASM" 
+
+for ORACLE_SID in $( ps -ef|grep pmon|grep -v grep|egrep -v ${EXL_DB}|awk '{print $NF}'|sed -e 's/ora_pmon_//g'|grep -v sed|grep -v "s///g" )
+   do
+    export ORACLE_SID
+    ORACLE_HOME=$(cat /etc/oratab | grep $ORACLE_SID | cut -f2 -d ':')
+ 
+export ORACLE_HOME
+LOG_DIR=$(${ORACLE_HOME}/bin/sqlplus -S "/ as sysdba" <<EOF
+set pages 0 feedback off lines 30000;
+prompt
+SELECT value from v\$diag_info where NAME='Diag Trace';
+exit;
+EOF
+)
 
 LINE_COUNT_OLD=0
 
@@ -25,4 +37,6 @@ do
 	sleep 5
 	LINE_COUNT_OLD=$LINE_COUNT
 	rm -f $LOG_DIR/alert_orcl_tmp.log 
+done
+
 done
