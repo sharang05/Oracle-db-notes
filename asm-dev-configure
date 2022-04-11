@@ -1,0 +1,54 @@
+yum install device-mapper*
+
+rpm -qa|grep device-mapper*
+cp /usr/share/doc/device-mapper-*/multipath.conf /etc/multipath.conf
+
+mpathconf --enable --user_friendly_names y
+modprobe dm_multipath
+lsmod|grep dm_multipath
+mpathconf --enable
+
+systemctl enable multipathd
+systemctl start multipathd
+systemctl status multipathd.service
+
+#find the scci disk ID of the attached storage
+
+/usr/lib/udev/scsi_id -g -u -d  /dev/sdb
+
+update find_multipaths no in conf file for vitualbox configuration to find the local disks listed
+
+[root@localhost ~]# cat /etc/multipath.conf
+defaults {
+        user_friendly_names yes
+        find_multipaths no
+}
+
+
+multipaths {
+        multipath {
+                wwid     1ATA_VBOX_HARDDISK_VBa8a90098-56a76591
+                }
+}
+
+blacklist {
+}
+
+
+mkdir /dev/oracleasm
+
+add to /etc/udev/rules.d/99-oracle-asmdevices.rules
+
+ACTION=="add|change", ENV{DM_UUID}=="mpath-VBOX_HARDDISK_VBa8a90098-56a76591", SYMLINK+="oracleasm/DATA01", OWNER="grid", GROUP="oinstall", MODE="0660"
+
+
+udevadm control --reload
+udevadm trigger --type=devices --action=change
+
+
+ls -l /dev/oracleasm*
+ls -l /dev/mapper/mpath*
+ls -l /dev/dm-*
+
+
+https://www.dbaplus.ca/2020/12/create-oracle-asm-disks-using-multipath.html
